@@ -1,0 +1,52 @@
+Sub SaveMacro()
+
+Dim WSHShell, RegKey, rkeyWord, Result
+Set WSHShell = CreateObject("WScript.Shell")
+Dim intCount As Integer
+Dim strDate As String
+Dim strPath As String
+Dim strFile As String
+Dim strFileType As WdDocumentType
+Dim strRevisionName As String
+Dim intPos As Integer
+Dim sExt As String
+
+strDate = Format((Date), "dd MMM yyyy")
+    sExt = ".doc"
+    strFileType = wdFormatDocument
+
+With ActiveDocument
+    On Error GoTo CancelledByUser
+    If Len(.Path) = 0 Then
+        .Save
+    End If
+    strPath = .Path
+    strFile = .Name
+End With
+
+intPos = InStr(strFile, " - ")
+If intPos = 0 Then
+    intPos = InStrRev(strFile, ".doc")
+End If
+strFile = Left(strFile, intPos - 1)
+
+Start:
+RegKey = "HKEY_CURRENT_USER\Software\Microsoft\Office\Word\Settings\"
+On Error Resume Next
+rkeyWord = WSHShell.RegRead(RegKey & strFile)
+If rkeyWord = "" Then
+    WSHShell.regwrite RegKey & strFile, 0
+    GoTo Start:
+End If
+
+intCount = Val(rkeyWord) + 1
+WSHShell.regwrite RegKey & strFile, intCount
+
+strRevisionName = strPath & "\" & strFile & " - Revision " & Format(intCount, "00#") & " -" & strDate & sExt
+ActiveDocument.SaveAs strRevisionName
+
+Exit Sub
+
+CancelledByUser:
+MsgBox "Cancelled By User", , "Save Cancelled."
+End Sub
